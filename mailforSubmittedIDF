@@ -1,0 +1,30 @@
+trigger mailforSubmittedIDF on SymphonyIPM__Invention_Disclosure_New__c (after insert, after update)
+{
+    Set<Id> submittedIDF = new Set<Id>();
+    for (SymphonyIPM__Invention_Disclosure_New__c draftIdf : Trigger.new)
+    {
+        if (draftIdf.SymphonyIPM__Disclosure_Status__c == 'Submitted')
+        {
+            submittedIDF.add(draftIdf.Id);
+            //sendMailClass.myMethod();
+        }
+    }
+    
+    List<SymphonyIPM__Invention_Disclosure_New__c> updatedIDF = [SELECT Id, Name, SymphonyIPM__Disclosure_Status__c, SymphonyIPM__Inventor_Email_Id__c FROM SymphonyIPM__Invention_Disclosure_New__c WHERE Id IN :submittedIDF];
+    
+    List<Messaging.SingleEmailMessage> emailList = new List<Messaging.SingleEmailMessage>();
+    for (SymphonyIPM__Invention_Disclosure_New__c idf : updatedIDF) {
+        String emailBody = 'Hi inventor, the status of the IDF (Invention Disclosure Form) with Name: ' + idf.Name + ' has been changed to "Submitted".' +idf.id+ 'Click here to navigate: https://migration-org--appsupport.sandbox.lightning.force.com/' + idf.Id;
+        String emailId = idf.SymphonyIPM__Inventor_Email_Id__c;
+        String ccEmailID = 'jeyakarthick.m@maxval.com';
+        
+        Messaging.SingleEmailMessage email = new Messaging.SingleEmailMessage();
+        email.setToAddresses(new List<String>{ emailId });
+        email.setCcAddresses(new List<String>{ccEmailID});
+        email.setSubject('Disclosure Status Update');
+        email.setPlainTextBody(emailBody);
+        emailList.add(email);
+    }
+    
+    Messaging.sendEmail(emailList);
+}
